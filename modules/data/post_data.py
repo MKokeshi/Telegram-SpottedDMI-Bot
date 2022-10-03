@@ -17,7 +17,7 @@ class PostData():
 
     @staticmethod
     def get_n_votes(vote: Optional[str] = None) -> int:
-        """Gets the total number of votes of the specified
+        """Ottt the total number of votes of the specified
 
         Args:
             vote: type of votes to consider. None means all
