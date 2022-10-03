@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.handlers.stats &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../handlers.html">modules.handlers</a> &raquo;</li>
+      <li>modules.handlers.stats</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.handlers.stats</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;/stats command&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Update</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackContext</span>
+<span class="kn">from</span> <span class="nn">modules.utils</span> <span class="kn">import</span> <span class="n">EventInfo</span><span class="p">,</span> <span class="n">get_stats_kb</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">PostData</span><span class="p">,</span> <span class="n">Config</span>
+
+<span class="n">REACTION</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">reactions_get</span><span class="p">(</span><span class="s1">&#39;reactions&#39;</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="stats_cmd"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.stats_cmd">[docs]</a><span class="k">def</span> <span class="nf">stats_cmd</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Handles the /stats command.</span>
+<span class="sd">    Lets the user choose what stats they want to see</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_message</span><span class="p">(</span><span class="n">update</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
+    <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Che statistica ti interessa?&quot;</span><span class="p">,</span> <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_stats_kb</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="stats_callback"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.stats_callback">[docs]</a><span class="k">def</span> <span class="nf">stats_callback</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Passes the stats callback to the correct handler</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span><span class="n">update</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+    <span class="n">info</span><span class="o">.</span><span class="n">answer_callback_query</span><span class="p">()</span>  <span class="c1"># end the spinning progress bar</span>
+    <span class="c1"># the callback data indicates the correct callback and the arg to pass to it separated by ,</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">query_data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">message_text</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">6</span><span class="p">:]</span><span class="si">}</span><span class="s1">_callback&#39;</span><span class="p">](</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># call the function based on its name</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;stats_callback: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># if there is a valid text, edit the menu with the new text</span>
+    <span class="k">if</span> <span class="n">message_text</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">message_text</span> <span class="o">!=</span> <span class="n">info</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">edit_message_text</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                                       <span class="n">message_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span>
+                                       <span class="n">text</span><span class="o">=</span><span class="n">message_text</span><span class="p">,</span>
+                                       <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_stats_kb</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># remove the reply markup</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">edit_inline_keyboard</span><span class="p">()</span></div>
+
+
+<span class="c1"># region handle stats_callback</span>
+<div class="viewcode-block" id="avg_callback"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.avg_callback">[docs]</a><span class="k">def</span> <span class="nf">avg_callback</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the avg_[ votes | 0 | 1 ] callback.</span>
+<span class="sd">    Shows the average of the %arg per post</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arg: [ votes | 0 | 1 ]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        text for the reply</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">arg</span> <span class="o">==</span> <span class="s2">&quot;votes&quot;</span><span class="p">:</span>
+        <span class="n">avg_votes</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_avg</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Gli spot ricevono in media </span><span class="si">{</span><span class="n">avg_votes</span><span class="si">}</span><span class="s2"> voti&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">avg_votes</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_avg</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Gli spot ricevono in media </span><span class="si">{</span><span class="n">avg_votes</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">REACTION</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+<div class="viewcode-block" id="max_callback"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.max_callback">[docs]</a><span class="k">def</span> <span class="nf">max_callback</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the max_[ votes | 0 | 1 ] callback</span>
+<span class="sd">    Shows the post with the most %arg</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arg: [ votes | 0 | 1 ]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        text for the reply</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">arg</span> <span class="o">==</span> <span class="s2">&quot;votes&quot;</span><span class="p">:</span>
+        <span class="n">max_votes</span><span class="p">,</span> <span class="n">message_id</span><span class="p">,</span> <span class="n">channel_id</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_max_id</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Lo spot con più voti ne ha </span><span class="si">{</span><span class="n">max_votes</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+            <span class="sa">f</span><span class="s2">&quot;Lo trovi a questo link: https://t.me/c/</span><span class="si">{</span><span class="n">channel_id</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">max_votes</span><span class="p">,</span> <span class="n">message_id</span><span class="p">,</span> <span class="n">channel_id</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_max_id</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Lo spot con più </span><span class="si">{</span><span class="n">REACTION</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span><span class="si">}</span><span class="s2"> ne ha </span><span class="si">{</span><span class="n">max_votes</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> \
+            <span class="sa">f</span><span class="s2">&quot;Lo trovi a questo link: https://t.me/c/</span><span class="si">{</span><span class="n">channel_id</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+<div class="viewcode-block" id="tot_callback"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.tot_callback">[docs]</a><span class="k">def</span> <span class="nf">tot_callback</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the tot_[ posts | votes | 0 | 1 ] callback</span>
+<span class="sd">    Shows the total number of %arg</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arg: [ posts | votes | 0 | 1 ]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        text for the reply</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">arg</span> <span class="o">==</span> <span class="s2">&quot;posts&quot;</span><span class="p">:</span>
+        <span class="n">n_posts</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_n_posts</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Sono stati pubblicati </span><span class="si">{</span><span class="n">n_posts</span><span class="si">}</span><span class="s2"> spot nel canale fin&#39;ora.</span><span class="se">\n</span><span class="s2">Potresti ampliare questo numero...&quot;</span>
+    <span class="k">elif</span> <span class="n">arg</span> <span class="o">==</span> <span class="s2">&quot;votes&quot;</span><span class="p">:</span>
+        <span class="n">n_votes</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_n_votes</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Il totale dei voti ammonta a </span><span class="si">{</span><span class="n">n_votes</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_votes</span> <span class="o">=</span> <span class="n">PostData</span><span class="o">.</span><span class="n">get_n_votes</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Il totale dei </span><span class="si">{</span><span class="n">REACTION</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span><span class="si">}</span><span class="s2"> ammonta a </span><span class="si">{</span><span class="n">n_votes</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+<div class="viewcode-block" id="close_callback"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.stats.close_callback">[docs]</a><span class="k">def</span> <span class="nf">close_callback</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the close callback</span>
+<span class="sd">    Closes the stats menu</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        text and replyMarkup that make up the reply</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

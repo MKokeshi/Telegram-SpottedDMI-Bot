@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.data.published_post &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>modules.data.published_post</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.data.published_post</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Published post management&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">telegram.inline.inlinekeyboardmarkup</span> <span class="kn">import</span> <span class="n">InlineKeyboardMarkup</span>
+<span class="kn">from</span> <span class="nn">.db_manager</span> <span class="kn">import</span> <span class="n">DbManager</span>
+
+
+<div class="viewcode-block" id="PublishedPost"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost">[docs]</a><span class="nd">@dataclass</span><span class="p">()</span>
+<span class="k">class</span> <span class="nc">PublishedPost</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Class that represents a published post</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        channel_id: id of the channel</span>
+<span class="sd">        c_message_id: id of the post in the channel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">channel_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">c_message_id</span><span class="p">:</span> <span class="nb">int</span>
+
+<div class="viewcode-block" id="PublishedPost.create"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.create">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c_message_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;PublishedPost&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Inserts a new post in the table of published posts</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            channel_id: id of the channel</span>
+<span class="sd">            c_message_id: id of the post in the channel</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">c_message_id</span><span class="o">=</span><span class="n">c_message_id</span><span class="p">)</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PublishedPost.from_channel"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.from_channel">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_channel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channel_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c_message_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;PublishedPost&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves a published post from the info related to the channel</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            channel_id: id of the channel</span>
+<span class="sd">            c_message_id: id of the post in the channel</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_present</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;published_meme&quot;</span><span class="p">,</span>
+                                          <span class="n">where</span><span class="o">=</span><span class="s2">&quot;channel_id = </span><span class="si">%s</span><span class="s2"> and c_message_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                          <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">c_message_id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_present</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">c_message_id</span><span class="o">=</span><span class="n">c_message_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PublishedPost.save_post"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.save_post">[docs]</a>    <span class="k">def</span> <span class="nf">save_post</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;PublishedPost&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Saves the published_post in the database&quot;&quot;&quot;</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;published_meme&quot;</span><span class="p">,</span>
+                              <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;channel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;c_message_id&quot;</span><span class="p">),</span>
+                              <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">__get_user_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the vote of a specific user on the post</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user_id: id of the user that voted</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            value of the vote or None if a vote was not yet made</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;vote&quot;</span><span class="p">,</span>
+                                     <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                                     <span class="n">where</span><span class="o">=</span><span class="s2">&quot;user_id = </span><span class="si">%s</span><span class="s2"> and c_message_id = </span><span class="si">%s</span><span class="s2"> and channel_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                     <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># the vote is not present</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">vote</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;vote&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PublishedPost.set_user_vote"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.set_user_vote">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">vote</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds the vote of the user on the post, updates the existing vote or deletes it</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user_id: id of the user that voted</span>
+<span class="sd">            vote: kind of vote the user wants to add or remove</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            whether the vote was added or removed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">current_vote</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_user_vote</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">current_vote</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># there isn&#39;t a vote yet</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                                  <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;c_message_id&quot;</span><span class="p">,</span> <span class="s2">&quot;channel_id&quot;</span><span class="p">,</span> <span class="s2">&quot;vote&quot;</span><span class="p">),</span>
+                                  <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">vote</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">current_vote</span> <span class="o">!=</span> <span class="n">vote</span><span class="p">:</span>  <span class="c1"># the old vote was different from the new vote</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">update_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                                  <span class="n">set_clause</span><span class="o">=</span><span class="s2">&quot;vote = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                  <span class="n">where</span><span class="o">=</span><span class="s2">&quot;user_id = </span><span class="si">%s</span><span class="s2"> and c_message_id = </span><span class="si">%s</span><span class="s2"> and channel_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                  <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">vote</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># the user wants to remove his vote</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                                  <span class="n">where</span><span class="o">=</span><span class="s2">&quot;user_id = </span><span class="si">%s</span><span class="s2"> and c_message_id = </span><span class="si">%s</span><span class="s2"> and channel_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                  <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PublishedPost.get_votes"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.get_votes">[docs]</a>    <span class="k">def</span> <span class="nf">get_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vote</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets all the votes of a specific kind on the post</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vote: kind of vote you are looking for</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            number of votes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                                    <span class="n">where</span><span class="o">=</span><span class="s2">&quot;c_message_id = </span><span class="si">%s</span><span class="s2"> and channel_id = </span><span class="si">%s</span><span class="s2"> and vote = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                    <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">,</span> <span class="n">vote</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PublishedPost.set_votes"><a class="viewcode-back" href="../../../modules.data.html#modules.data.published_post.PublishedPost.set_votes">[docs]</a>    <span class="k">def</span> <span class="nf">set_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyboard</span><span class="p">:</span> <span class="n">InlineKeyboardMarkup</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets all the votes of the post based on the inline keyboard.</span>
+<span class="sd">        This means that all previous votes associated with this post, if present, will be replaced</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keyboard: posts inline keyboard</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;votes&quot;</span><span class="p">,</span>
+                              <span class="n">where</span><span class="o">=</span><span class="s2">&quot;c_message_id = </span><span class="si">%s</span><span class="s2"> and channel_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                              <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="p">))</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">keyboard</span><span class="o">.</span><span class="n">inline_keyboard</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">callback_data</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;meme_vote,&quot;</span><span class="p">):</span>
+                    <span class="n">n_votes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">vote</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_votes</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">set_user_vote</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">vote</span><span class="o">=</span><span class="n">vote</span><span class="p">)</span>
+                        <span class="n">ids</span> <span class="o">-=</span> <span class="mi">1</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PublishedPost: [ channel_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">channel_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;c_message_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">c_message_id</span><span class="si">}</span><span class="s2"> ]&quot;</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

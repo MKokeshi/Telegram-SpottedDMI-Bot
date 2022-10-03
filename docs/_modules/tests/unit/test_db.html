@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tests.unit.test_db &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>tests.unit.test_db</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tests.unit.test_db</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=unused-argument,redefined-outer-name</span>
+<span class="sd">&quot;&quot;&quot;Test all the modules related to data management&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">DbManager</span>
+
+<span class="n">TABLE_NAME</span> <span class="o">=</span> <span class="s2">&quot;test_table&quot;</span>
+
+
+<div class="viewcode-block" id="db_results"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.db_results">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">db_results</span><span class="p">(</span><span class="n">init_local_test_db</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called at the beginning of the testing session.</span>
+<span class="sd">    Creates initializes the database</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        Iterator[dict]: dictionary containing the results for the test queries</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">init_local_test_db</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">if</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;number&quot;</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="s2">&quot;number&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">}</span>
+    <span class="n">init_local_test_db</span><span class="o">.</span><span class="n">query_from_file</span><span class="p">(</span><span class="s2">&quot;data/db/db_test.sql&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;tests/unit/db_results.yaml&quot;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">yaml_config</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">yaml_config</span><span class="p">,</span> <span class="n">Loader</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">SafeLoader</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="n">results</span>
+
+    <span class="n">init_local_test_db</span><span class="o">.</span><span class="n">query_from_string</span><span class="p">(</span><span class="s2">&quot;DROP TABLE IF EXISTS test_table;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TestDB"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB">[docs]</a><span class="k">class</span> <span class="nc">TestDB</span><span class="p">:</span>
+
+<div class="viewcode-block" id="TestDB.test_get_db"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_get_db">[docs]</a>    <span class="k">def</span> <span class="nf">test_get_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the get_db function for the database&quot;&quot;&quot;</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="n">conn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">cur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestDB.test_query_from_string"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_query_from_string">[docs]</a>    <span class="k">def</span> <span class="nf">test_query_from_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the query_from_string function for the database&quot;&quot;&quot;</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">query_from_string</span><span class="p">(</span><span class="s2">&quot;DROP TABLE IF EXISTS temp;&quot;</span><span class="p">,</span> <span class="s2">&quot;CREATE TABLE temp(id int NOT NULL, PRIMARY KEY (id));&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">query_from_string</span><span class="p">(</span><span class="s2">&quot;DROP TABLE temp;&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDB.test_select_from"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_select_from">[docs]</a>    <span class="k">def</span> <span class="nf">test_select_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the select_from function of the database&quot;&quot;&quot;</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id = </span><span class="si">%s</span><span class="s2"> or id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;select_from1&#39;</span><span class="p">]</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;id, name&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot; id = 1&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;select_from2&#39;</span><span class="p">]</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;select_from3&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestDB.test_count_from"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_count_from">[docs]</a>    <span class="k">def</span> <span class="nf">test_count_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the count_from function of the database&quot;&quot;&quot;</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id = </span><span class="si">%s</span><span class="s2"> or id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;count_from1&#39;</span><span class="p">]</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot; id = 1&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;count_from2&#39;</span><span class="p">]</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;count_from3&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestDB.test_insert_into"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_insert_into">[docs]</a>    <span class="k">def</span> <span class="nf">test_insert_into</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the insert_into function of the database&quot;&quot;&quot;</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;test_insert1&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">))</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s2">&quot;test_insert2&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">),</span> <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;surname&quot;</span><span class="p">))</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span>
+                              <span class="n">values</span><span class="o">=</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;test_insert3&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="s2">&quot;test_insert4&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)),</span>
+                              <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;surname&quot;</span><span class="p">),</span>
+                              <span class="n">multiple_rows</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id &gt;= </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,))</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot; id &gt;= 10&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;insert_into&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestDB.test_update_from"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_update_from">[docs]</a>    <span class="k">def</span> <span class="nf">test_update_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the update_from function of the database&quot;&quot;&quot;</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">update_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">set_clause</span><span class="o">=</span><span class="s2">&quot;surname = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">,))</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">update_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">set_clause</span><span class="o">=</span><span class="s2">&quot;name = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id IN (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;modif&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">TABLE_NAME</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">query_result</span> <span class="o">==</span> <span class="n">db_results</span><span class="p">[</span><span class="s1">&#39;update_from&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TestDB.test_delete_from"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_db.TestDB.test_delete_from">[docs]</a>    <span class="k">def</span> <span class="nf">test_delete_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests the delete_from function of the database&quot;&quot;&quot;</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">query_from_string</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;DROP TABLE IF EXISTS temp;&quot;&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;&quot;CREATE TABLE temp(</span>
+<span class="s2">                                    id int NOT NULL,</span>
+<span class="s2">                                    PRIMARY KEY (id)</span>
+<span class="s2">                                    );&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="n">i</span><span class="p">,))</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id &gt;= </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">5</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot; id &gt;= </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id &gt;= </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">3</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s2">&quot;id &gt;= </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">query_from_string</span><span class="p">(</span><span class="s2">&quot;DROP TABLE temp;&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

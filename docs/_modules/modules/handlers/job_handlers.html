@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.handlers.job_handlers &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../handlers.html">modules.handlers</a> &raquo;</li>
+      <li>modules.handlers.job_handlers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.handlers.job_handlers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Scheduled jobs of the bot&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackContext</span>
+<span class="kn">from</span> <span class="nn">telegram.error</span> <span class="kn">import</span> <span class="n">BadRequest</span><span class="p">,</span> <span class="n">Unauthorized</span>
+<span class="kn">from</span> <span class="nn">modules.debug</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">get_abs_path</span><span class="p">,</span> <span class="n">Config</span><span class="p">,</span> <span class="n">PendingPost</span><span class="p">,</span> <span class="n">DbManager</span>
+<span class="kn">from</span> <span class="nn">modules.utils</span> <span class="kn">import</span> <span class="n">EventInfo</span>
+
+
+<div class="viewcode-block" id="clean_pending_job"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.job_handlers.clean_pending_job">[docs]</a><span class="k">def</span> <span class="nf">clean_pending_job</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Job called each day at 05:00 utc.</span>
+<span class="sd">    Automatically rejects all pending posts that are older than the chosen amount of hours</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        context: context passed by the jobqueue</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_job</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">admin_group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">)</span>
+
+    <span class="n">before_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;remove_after_h&#39;</span><span class="p">))</span>
+    <span class="n">pending_posts</span> <span class="o">=</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">get_all</span><span class="p">(</span><span class="n">group_id</span><span class="o">=</span><span class="n">admin_group_id</span><span class="p">,</span> <span class="n">before</span><span class="o">=</span><span class="n">before_time</span><span class="p">)</span>
+
+    <span class="c1"># For each pending meme older than before_time</span>
+    <span class="n">removed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">pending_post</span> <span class="ow">in</span> <span class="n">pending_posts</span><span class="p">:</span>
+        <span class="n">message_id</span> <span class="o">=</span> <span class="n">pending_post</span><span class="o">.</span><span class="n">g_message_id</span>
+        <span class="k">try</span><span class="p">:</span>  <span class="c1"># deleting the message associated with the pending meme to remote</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">delete_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">admin_group_id</span><span class="p">,</span> <span class="n">message_id</span><span class="o">=</span><span class="n">message_id</span><span class="p">)</span>
+            <span class="n">removed</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">try</span><span class="p">:</span>  <span class="c1"># sending a notification to the user</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+                    <span class="n">chat_id</span><span class="o">=</span><span class="n">pending_post</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
+                    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Gli admin erano sicuramente molto impegnati e non sono riusciti a valutare lo spot in tempo&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">BadRequest</span><span class="p">,</span> <span class="n">Unauthorized</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Notifying the user on /clean_pending: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">BadRequest</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Deleting old pending message: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>  <span class="c1"># delete the data associated with the pending meme</span>
+            <span class="n">pending_post</span><span class="o">.</span><span class="n">delete_post</span><span class="p">()</span>
+
+    <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">admin_group_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Sono stati eliminati </span><span class="si">{</span><span class="n">removed</span><span class="si">}</span><span class="s2"> messaggi rimasti in sospeso&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="db_backup_job"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.job_handlers.db_backup_job">[docs]</a><span class="k">def</span> <span class="nf">db_backup_job</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Job called each day at 05:00 utc.</span>
+<span class="sd">    Automatically upload and send last version of db for backup</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        context: context passed by the jobqueue</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">get_abs_path</span><span class="p">(</span><span class="o">*</span><span class="n">DbManager</span><span class="o">.</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="n">admin_group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database_file</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_document</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">admin_group_id</span><span class="p">,</span>
+                                      <span class="n">document</span><span class="o">=</span><span class="n">database_file</span><span class="p">,</span>
+                                      <span class="n">timeout</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+                                      <span class="n">caption</span><span class="o">=</span><span class="s2">&quot;✅ Backup effettuato con successo&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>  <span class="c1">#pylint: disable=broad-except</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">admin_group_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;✖️ Impossibile effettuare il backup</span><span class="se">\n\n</span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

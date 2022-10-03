@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.handlers &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>modules.handlers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.handlers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Modules that handle the events the bot recognizes and reacts to&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">pytz</span> <span class="kn">import</span> <span class="n">utc</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">BotCommand</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackQueryHandler</span><span class="p">,</span> <span class="n">CommandHandler</span><span class="p">,</span> <span class="n">Dispatcher</span><span class="p">,</span> <span class="n">Filters</span><span class="p">,</span> <span class="n">MessageHandler</span><span class="p">,</span> <span class="n">Updater</span>
+<span class="kn">from</span> <span class="nn">modules.data.config</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">modules.debug</span> <span class="kn">import</span> <span class="n">error_handler</span><span class="p">,</span> <span class="n">log_message</span>
+<span class="kn">from</span> <span class="nn">.anonym_comment</span> <span class="kn">import</span> <span class="n">anonymous_comment_msg</span>
+<span class="kn">from</span> <span class="nn">.autoreply</span> <span class="kn">import</span> <span class="n">autoreply_cmd</span>
+<span class="kn">from</span> <span class="nn">.ban</span> <span class="kn">import</span> <span class="n">ban_cmd</span>
+<span class="kn">from</span> <span class="nn">.callback_handlers</span> <span class="kn">import</span> <span class="n">meme_callback</span>
+<span class="kn">from</span> <span class="nn">.cancel</span> <span class="kn">import</span> <span class="n">cancel_cmd</span>
+<span class="kn">from</span> <span class="nn">.clean_pending</span> <span class="kn">import</span> <span class="n">clean_pending_cmd</span>
+<span class="kn">from</span> <span class="nn">.db_backup</span> <span class="kn">import</span> <span class="n">db_backup_cmd</span>
+<span class="kn">from</span> <span class="nn">.forwarded_post</span> <span class="kn">import</span> <span class="n">forwarded_post_msg</span>
+<span class="kn">from</span> <span class="nn">.help</span> <span class="kn">import</span> <span class="n">help_cmd</span>
+<span class="kn">from</span> <span class="nn">.job_handlers</span> <span class="kn">import</span> <span class="n">clean_pending_job</span><span class="p">,</span> <span class="n">db_backup_job</span>
+<span class="kn">from</span> <span class="nn">.purge</span> <span class="kn">import</span> <span class="n">purge_cmd</span>
+<span class="kn">from</span> <span class="nn">.reply</span> <span class="kn">import</span> <span class="n">reply_cmd</span>
+<span class="kn">from</span> <span class="nn">.report_spot</span> <span class="kn">import</span> <span class="n">report_spot_conv_handler</span>
+<span class="kn">from</span> <span class="nn">.report_user</span> <span class="kn">import</span> <span class="n">report_user_conv_handler</span>
+<span class="kn">from</span> <span class="nn">.rules</span> <span class="kn">import</span> <span class="n">rules_cmd</span>
+<span class="kn">from</span> <span class="nn">.sban</span> <span class="kn">import</span> <span class="n">sban_cmd</span>
+<span class="kn">from</span> <span class="nn">.settings</span> <span class="kn">import</span> <span class="n">settings_cmd</span>
+<span class="kn">from</span> <span class="nn">.spot</span> <span class="kn">import</span> <span class="n">spot_conv_handler</span>
+<span class="kn">from</span> <span class="nn">.start</span> <span class="kn">import</span> <span class="n">start_cmd</span>
+<span class="kn">from</span> <span class="nn">.stats</span> <span class="kn">import</span> <span class="n">stats_callback</span><span class="p">,</span> <span class="n">stats_cmd</span>
+
+
+<div class="viewcode-block" id="add_commands"><a class="viewcode-back" href="../../modules.handlers.html#modules.handlers.add_commands">[docs]</a><span class="k">def</span> <span class="nf">add_commands</span><span class="p">(</span><span class="n">updater</span><span class="p">:</span> <span class="n">Updater</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds the list of commands with their description to the bot</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        updater: supplied Updater</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">commands</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;presentazione iniziale del bot&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;spot&quot;</span><span class="p">,</span> <span class="s2">&quot;inizia a spottare&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;cancel &quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;annulla la procedura in corso e cancella l&#39;ultimo spot inviato, se non è ancora stato pubblicato&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;help &quot;</span><span class="p">,</span> <span class="s2">&quot;funzionamento e scopo del bot&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="s2">&quot;segnala un utente&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;rules &quot;</span><span class="p">,</span> <span class="s2">&quot;regole da tenere a mente&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;stats&quot;</span><span class="p">,</span> <span class="s2">&quot;visualizza statistiche sugli spot&quot;</span><span class="p">),</span>
+        <span class="n">BotCommand</span><span class="p">(</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="s2">&quot;cambia le impostazioni di privacy&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">updater</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">set_my_commands</span><span class="p">(</span><span class="n">commands</span><span class="o">=</span><span class="n">commands</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_handlers"><a class="viewcode-back" href="../../modules.handlers.html#modules.handlers.add_handlers">[docs]</a><span class="k">def</span> <span class="nf">add_handlers</span><span class="p">(</span><span class="n">disp</span><span class="p">:</span> <span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds all the needed handlers to the dispatcher</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        disp: supplied dispatcher</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+                            <span class="n">message</span><span class="o">=</span><span class="s2">&quot;If &#39;per_message=False&#39;, &#39;CallbackQueryHandler&#39; will not be tracked for every message.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Config</span><span class="o">.</span><span class="n">settings_get</span><span class="p">(</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="s1">&#39;local_log&#39;</span><span class="p">):</span>  <span class="c1"># add MessageHandler only if log_message is enabled</span>
+        <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">all</span><span class="p">,</span> <span class="n">log_message</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">admin_filter</span> <span class="o">=</span> <span class="n">Filters</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Error handler</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_error_handler</span><span class="p">(</span><span class="n">error_handler</span><span class="p">)</span>
+
+    <span class="c1"># Conversation handler</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">spot_conv_handler</span><span class="p">())</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">report_user_conv_handler</span><span class="p">())</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">report_spot_conv_handler</span><span class="p">())</span>
+
+    <span class="c1"># Command handlers</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">start_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;help&quot;</span><span class="p">,</span> <span class="n">help_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;rules&quot;</span><span class="p">,</span> <span class="n">rules_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;stats&quot;</span><span class="p">,</span> <span class="n">stats_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">settings_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;sban&quot;</span><span class="p">,</span> <span class="n">sban_cmd</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">admin_filter</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;clean_pending&quot;</span><span class="p">,</span> <span class="n">clean_pending_cmd</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">admin_filter</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;db_backup&quot;</span><span class="p">,</span> <span class="n">db_backup_cmd</span><span class="p">,</span> <span class="n">run_async</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">admin_filter</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;purge&quot;</span><span class="p">,</span> <span class="n">purge_cmd</span><span class="p">,</span> <span class="n">run_async</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">admin_filter</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;cancel&quot;</span><span class="p">,</span> <span class="n">cancel_cmd</span><span class="p">))</span>  <span class="c1"># it must be after the conversation handler&#39;s &#39;cancel&#39;</span>
+
+    <span class="c1"># MessageHandler</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">reply</span> <span class="o">&amp;</span> <span class="n">admin_filter</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^/ban$&quot;</span><span class="p">),</span> <span class="n">ban_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">reply</span> <span class="o">&amp;</span> <span class="n">admin_filter</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^/reply&quot;</span><span class="p">),</span> <span class="n">reply_cmd</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">reply</span> <span class="o">&amp;</span> <span class="n">admin_filter</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^/autoreply&quot;</span><span class="p">),</span> <span class="n">autoreply_cmd</span><span class="p">))</span>
+
+    <span class="c1"># Callback handlers</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CallbackQueryHandler</span><span class="p">(</span><span class="n">meme_callback</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^meme_\.*&quot;</span><span class="p">))</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">CallbackQueryHandler</span><span class="p">(</span><span class="n">stats_callback</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^stats_\.*&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;comments&#39;</span><span class="p">):</span>
+        <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span>
+            <span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">forwarded</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">chat_type</span><span class="o">.</span><span class="n">groups</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">is_automatic_forward</span><span class="p">,</span> <span class="n">forwarded_post_msg</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;delete_anonymous_comments&#39;</span><span class="p">):</span>
+        <span class="n">disp</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span>
+            <span class="n">MessageHandler</span><span class="p">(</span><span class="n">Filters</span><span class="o">.</span><span class="n">sender_chat</span><span class="o">.</span><span class="n">channel</span> <span class="o">&amp;</span> <span class="n">Filters</span><span class="o">.</span><span class="n">chat_type</span><span class="o">.</span><span class="n">groups</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">Filters</span><span class="o">.</span><span class="n">is_automatic_forward</span><span class="p">,</span>
+                           <span class="n">anonymous_comment_msg</span><span class="p">,</span>
+                           <span class="n">run_async</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="add_jobs"><a class="viewcode-back" href="../../modules.handlers.html#modules.handlers.add_jobs">[docs]</a><span class="k">def</span> <span class="nf">add_jobs</span><span class="p">(</span><span class="n">disp</span><span class="p">:</span> <span class="n">Dispatcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds all the jobs to be scheduled to the dispatcher</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        disp: supplyed dispatcher</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">run_daily</span><span class="p">(</span><span class="n">clean_pending_job</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">))</span>  <span class="c1"># run each day at 05:00 utc</span>
+    <span class="n">disp</span><span class="o">.</span><span class="n">job_queue</span><span class="o">.</span><span class="n">run_daily</span><span class="p">(</span><span class="n">db_backup_job</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">(</span><span class="n">hour</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">))</span>  <span class="c1"># run each day at 05:00 utc</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

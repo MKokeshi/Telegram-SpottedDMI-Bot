@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.utils.info_util &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>modules.utils.info_util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.utils.info_util</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Common info needed in both command and callback handlers&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Bot</span><span class="p">,</span> <span class="n">Update</span><span class="p">,</span> <span class="n">Message</span><span class="p">,</span> <span class="n">CallbackQuery</span><span class="p">,</span> <span class="n">ReplyMarkup</span><span class="p">,</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">InlineKeyboardMarkup</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackContext</span>
+<span class="kn">from</span> <span class="nn">telegram.error</span> <span class="kn">import</span> <span class="n">BadRequest</span>
+<span class="kn">from</span> <span class="nn">modules.debug.log_manager</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">Config</span><span class="p">,</span> <span class="n">PendingPost</span><span class="p">,</span> <span class="n">PublishedPost</span><span class="p">,</span> <span class="n">User</span>
+<span class="kn">from</span> <span class="nn">modules.utils.keyboard_util</span> <span class="kn">import</span> <span class="n">get_approve_kb</span><span class="p">,</span> <span class="n">get_vote_kb</span>
+
+
+<div class="viewcode-block" id="EventInfo"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo">[docs]</a><span class="k">class</span> <span class="nc">EventInfo</span><span class="p">():</span>  <span class="c1"># pylint: disable=too-many-public-methods</span>
+    <span class="sd">&quot;&quot;&quot;Class that contains all the relevant information related to an event&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">bot</span><span class="p">:</span> <span class="n">Bot</span><span class="p">,</span>
+                 <span class="n">ctx</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">,</span>
+                 <span class="n">update</span><span class="p">:</span> <span class="n">Update</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">message</span><span class="p">:</span> <span class="n">Message</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">query</span><span class="p">:</span> <span class="n">CallbackQuery</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span> <span class="o">=</span> <span class="n">bot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__update</span> <span class="o">=</span> <span class="n">update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="o">=</span> <span class="n">query</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bot</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Bot</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Instance of the telegram bot&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">context</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackContext</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Context generated by some event&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ctx</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Update</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Update generated by some event&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__update</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Message that caused the update&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bot_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Data related to the bot. Is not persistent between restarts&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ctx</span><span class="o">.</span><span class="n">bot_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Data related to the user. Is not persistent between restarts&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ctx</span><span class="o">.</span><span class="n">user_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">chat_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the chat where the event happened&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">chat_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">chat_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Type of the chat where the event happened&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_private_chat</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Whether the chat is private or not&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_type</span> <span class="o">==</span> <span class="n">Chat</span><span class="o">.</span><span class="n">PRIVATE</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Text of the message that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">text</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">message_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the message that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">message_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_valid_message_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Whether or not the type of the message is supported&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">text</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">photo</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">voice</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">audio</span>\
+        <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">video</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">animation</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">sticker</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">poll</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reply_markup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReplyMarkup</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Reply_markup of the message that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">reply_markup</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the user that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_username</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Username of the user that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">username</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">username</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Name of the user that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inline_keyboard</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InlineKeyboardMarkup</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;InlineKeyboard attached to the message&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">reply_markup</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">query_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the query that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">query_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Data associated with the query that caused the update&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__query</span><span class="o">.</span><span class="n">data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">forward_from_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the original message that has been forwarded&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">forward_from_message_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">forward_from_chat_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Id of the original chat the message has been forwarded from&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">forward_from_chat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">forward_from_chat</span><span class="o">.</span><span class="n">id</span>
+
+<div class="viewcode-block" id="EventInfo.from_message"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.from_message">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_message</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;EventInfo&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Instance of EventInfo created by a message update</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            update: update event</span>
+<span class="sd">            context: context passed by the handler</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span> <span class="k">if</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">update</span><span class="o">.</span><span class="n">edited_message</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">bot</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">bot</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventInfo.from_callback"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.from_callback">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_callback</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;EventInfo&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Instance of EventInfo created by a callback update</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            update: update event</span>
+<span class="sd">            context: context passed by the handler</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">bot</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">bot</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">update</span><span class="o">.</span><span class="n">callback_query</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">update</span><span class="o">.</span><span class="n">callback_query</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventInfo.from_job"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.from_job">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_job</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;EventInfo&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Instance of EventInfo created by a job update</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            context: context passed by the handler</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">bot</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">bot</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventInfo.answer_callback_query"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.answer_callback_query">[docs]</a>    <span class="k">def</span> <span class="nf">answer_callback_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calls the answer_callback_query method of the bot class, while also handling the exception</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text: Text to show to the user</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">answer_callback_query</span><span class="p">(</span><span class="n">callback_query_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">BadRequest</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;On answer_callback_query: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventInfo.edit_inline_keyboard"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.edit_inline_keyboard">[docs]</a>    <span class="k">def</span> <span class="nf">edit_inline_keyboard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chat_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">message_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">new_keyboard</span><span class="p">:</span> <span class="n">InlineKeyboardMarkup</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generic wrapper used to edit the inline keyboard of a message with the telegram bot,</span>
+<span class="sd">        while also handling the exception</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            chat_id: id of the chat the message to edit belongs to or the current chat if None</span>
+<span class="sd">            message_id: id of the message to edit. It is the current message if left None</span>
+<span class="sd">            new_keyboard: new inline keyboard to assign to the message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chat_id</span> <span class="o">=</span> <span class="n">chat_id</span> <span class="k">if</span> <span class="n">chat_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_id</span>
+        <span class="n">message_id</span> <span class="o">=</span> <span class="n">message_id</span> <span class="k">if</span> <span class="n">message_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">message_id</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">edit_message_reply_markup</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">message_id</span><span class="o">=</span><span class="n">message_id</span><span class="p">,</span> <span class="n">reply_markup</span><span class="o">=</span><span class="n">new_keyboard</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">BadRequest</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;EventInfo.edit_inline_keyboard: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EventInfo.send_post_to_admins"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.send_post_to_admins">[docs]</a>    <span class="k">def</span> <span class="nf">send_post_to_admins</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Sends the post to the admin group, so it can be approved</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            whether or not the operation was successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span><span class="o">.</span><span class="n">reply_to_message</span>
+        <span class="n">group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">)</span>
+        <span class="n">poll</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">poll</span>  <span class="c1"># if the message is a poll, get its reference</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">poll</span><span class="p">:</span>  <span class="c1"># makes sure the poll is anonym</span>
+                <span class="n">g_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">send_poll</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span>
+                                                    <span class="n">question</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">question</span><span class="p">,</span>
+                                                    <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="n">option</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">poll</span><span class="o">.</span><span class="n">options</span><span class="p">],</span>
+                                                    <span class="nb">type</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                                                    <span class="n">allows_multiple_answers</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">allows_multiple_answers</span><span class="p">,</span>
+                                                    <span class="n">correct_option_id</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">correct_option_id</span><span class="p">,</span>
+                                                    <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_approve_kb</span><span class="p">())</span><span class="o">.</span><span class="n">message_id</span>
+            <span class="k">elif</span> <span class="n">message</span><span class="o">.</span><span class="n">text</span> <span class="ow">and</span> <span class="n">message</span><span class="o">.</span><span class="n">entities</span><span class="p">:</span>  <span class="c1"># maintains the previews, if present</span>
+                <span class="n">show_preview</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;show_preview&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="n">g_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span>
+                                                       <span class="n">text</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                                                       <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_approve_kb</span><span class="p">(),</span>
+                                                       <span class="n">entities</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">entities</span><span class="p">,</span>
+                                                       <span class="n">disable_web_page_preview</span><span class="o">=</span><span class="ow">not</span> <span class="n">show_preview</span><span class="p">)</span><span class="o">.</span><span class="n">message_id</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">g_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">copy_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span>
+                                                       <span class="n">from_chat_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                                                       <span class="n">message_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span>
+                                                       <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_approve_kb</span><span class="p">())</span><span class="o">.</span><span class="n">message_id</span>
+        <span class="k">except</span> <span class="n">BadRequest</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Sending the post on send_post_to: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">PendingPost</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">user_message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span> <span class="n">g_message_id</span><span class="o">=</span><span class="n">g_message_id</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="EventInfo.send_post_to_channel"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.send_post_to_channel">[docs]</a>    <span class="k">def</span> <span class="nf">send_post_to_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sends the post to  the channel, so it can be enjoyed by the users (and voted, if comments are disabled)&quot;&quot;&quot;</span>
+
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span>
+        <span class="n">channel_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_id&#39;</span><span class="p">)</span>
+        <span class="n">poll</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">poll</span>  <span class="c1"># if the message is a poll, get its reference</span>
+
+        <span class="n">reply_markup</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;comments&#39;</span><span class="p">):</span>  <span class="c1"># ... append the voting Inline Keyboard, if comments are not to be supported</span>
+            <span class="n">reply_markup</span> <span class="o">=</span> <span class="n">get_vote_kb</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">poll</span><span class="p">:</span>  <span class="c1"># makes sure the poll is anonym</span>
+            <span class="n">c_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">send_poll</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span>
+                                                <span class="n">question</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">question</span><span class="p">,</span>
+                                                <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="n">option</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">poll</span><span class="o">.</span><span class="n">options</span><span class="p">],</span>
+                                                <span class="nb">type</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                                                <span class="n">allows_multiple_answers</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">allows_multiple_answers</span><span class="p">,</span>
+                                                <span class="n">correct_option_id</span><span class="o">=</span><span class="n">poll</span><span class="o">.</span><span class="n">correct_option_id</span><span class="p">,</span>
+                                                <span class="n">reply_markup</span><span class="o">=</span><span class="n">reply_markup</span><span class="p">)</span><span class="o">.</span><span class="n">message_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">copy_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">,</span>
+                                                   <span class="n">from_chat_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                                                   <span class="n">message_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span>
+                                                   <span class="n">reply_markup</span><span class="o">=</span><span class="n">reply_markup</span><span class="p">)</span><span class="o">.</span><span class="n">message_id</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;comments&#39;</span><span class="p">):</span>  <span class="c1"># if the user can vote directly on the post</span>
+            <span class="n">PublishedPost</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">c_message_id</span><span class="o">=</span><span class="n">c_message_id</span><span class="p">,</span> <span class="n">channel_id</span><span class="o">=</span><span class="n">channel_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># ... else, if comments are enabled, save the user_id, so the user can be credited</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bot_data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">channel_id</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">c_message_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_id</span></div>
+
+<div class="viewcode-block" id="EventInfo.send_post_to_channel_group"><a class="viewcode-back" href="../../../modules.utils.html#modules.utils.info_util.EventInfo.send_post_to_channel_group">[docs]</a>    <span class="k">def</span> <span class="nf">send_post_to_channel_group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sends the post to the group associated to the channel, so that users can vote the post (if comments are enabled)&quot;&quot;&quot;</span>
+
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__message</span>
+        <span class="n">channel_group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_group_id&#39;</span><span class="p">)</span>
+        <span class="n">user_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bot_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">forward_from_chat_id</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">forward_from_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">sign</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span><span class="o">.</span><span class="n">get_user_sign</span><span class="p">(</span><span class="n">bot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="p">)</span>
+        <span class="n">post_message_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">channel_group_id</span><span class="p">,</span>
+                                                  <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;by: </span><span class="si">{</span><span class="n">sign</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                                  <span class="n">reply_markup</span><span class="o">=</span><span class="n">get_vote_kb</span><span class="p">(),</span>
+                                                  <span class="n">reply_to_message_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span><span class="o">.</span><span class="n">message_id</span>
+
+        <span class="n">PublishedPost</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="n">channel_group_id</span><span class="p">,</span> <span class="n">c_message_id</span><span class="o">=</span><span class="n">post_message_id</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

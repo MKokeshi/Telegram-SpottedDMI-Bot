@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.data.pending_post &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>modules.data.pending_post</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.data.pending_post</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Pending post management&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Bot</span>
+<span class="kn">from</span> <span class="nn">.db_manager</span> <span class="kn">import</span> <span class="n">DbManager</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">Config</span>
+
+
+<div class="viewcode-block" id="PendingPost"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost">[docs]</a><span class="nd">@dataclass</span><span class="p">()</span>
+<span class="k">class</span> <span class="nc">PendingPost</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Class that represents a pending post</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        user_id: id of the user that sent the post</span>
+<span class="sd">        u_message_id: id of the original message of the post</span>
+<span class="sd">        g_message_id: id of the post in the group</span>
+<span class="sd">        group_id: id of the admin group</span>
+<span class="sd">        date: when the post was sent</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">u_message_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">g_message_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">group_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="PendingPost.create"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.create">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">user_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span> <span class="n">g_message_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">group_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;PendingPost&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a new post and inserts it in the table of pending posts</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user_message: message sent by the user that contains the post</span>
+<span class="sd">            g_message_id: id of the post in the group</span>
+<span class="sd">            group_id: id of the admin group</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">user_id</span> <span class="o">=</span> <span class="n">user_message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">u_message_id</span> <span class="o">=</span> <span class="n">user_message</span><span class="o">.</span><span class="n">message_id</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span> <span class="n">u_message_id</span><span class="o">=</span><span class="n">u_message_id</span><span class="p">,</span> <span class="n">g_message_id</span><span class="o">=</span><span class="n">g_message_id</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">)</span> \
+                <span class="o">.</span><span class="n">save_post</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PendingPost.from_group"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.from_group">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_group</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">g_message_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">group_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;PendingPost&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves a pending post from the info related to the admin group</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            g_message_id: id of the post in the group</span>
+<span class="sd">            group_id: id of the admin group</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pending_post_arr</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+                                                 <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                                                 <span class="n">where</span><span class="o">=</span><span class="s2">&quot;group_id = </span><span class="si">%s</span><span class="s2"> and g_message_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                                 <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">g_message_id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pending_post_arr</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">pending_post</span> <span class="o">=</span> <span class="n">pending_post_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">],</span>
+                   <span class="n">u_message_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;u_message_id&#39;</span><span class="p">],</span>
+                   <span class="n">group_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;group_id&#39;</span><span class="p">],</span>
+                   <span class="n">g_message_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;g_message_id&#39;</span><span class="p">],</span>
+                   <span class="n">date</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;message_date&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="PendingPost.from_user"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.from_user">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_user</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;PendingPost&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves a pending post from the user_id</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user_id: id of the author of the post</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            instance of the class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pending_post_arr</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+                                                 <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                                                 <span class="n">where</span><span class="o">=</span><span class="s2">&quot;user_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                                 <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">user_id</span><span class="p">,))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pending_post_arr</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">pending_post</span> <span class="o">=</span> <span class="n">pending_post_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">],</span>
+                   <span class="n">u_message_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;u_message_id&#39;</span><span class="p">],</span>
+                   <span class="n">group_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;group_id&#39;</span><span class="p">],</span>
+                   <span class="n">g_message_id</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;g_message_id&#39;</span><span class="p">],</span>
+                   <span class="n">date</span><span class="o">=</span><span class="n">pending_post</span><span class="p">[</span><span class="s1">&#39;message_date&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="PendingPost.get_all"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.get_all">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_all</span><span class="p">(</span><span class="n">group_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">before</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s1">&#39;PendingPost&#39;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the list of pending memes in the specified admin group.</span>
+<span class="sd">        If before is specified, returns only the one sent before that timestamp</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            group_id: id of the admin group</span>
+<span class="sd">            before: timestamp before which messages will be considered</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of ids of pending memes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">before</span><span class="p">:</span>
+            <span class="n">pending_posts_id</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;g_message_id&quot;</span><span class="p">,</span>
+                                                     <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                                                     <span class="n">where</span><span class="o">=</span><span class="s2">&quot;group_id = </span><span class="si">%s</span><span class="s2"> and (message_date &lt; </span><span class="si">%s</span><span class="s2"> or message_date IS NULL)&quot;</span><span class="p">,</span>
+                                                     <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">before</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pending_posts_id</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;g_message_id&quot;</span><span class="p">,</span>
+                                                     <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                                                     <span class="n">where</span><span class="o">=</span><span class="s2">&quot;group_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                                     <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">group_id</span><span class="p">,))</span>
+        <span class="n">pending_posts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">post</span> <span class="ow">in</span> <span class="n">pending_posts_id</span><span class="p">:</span>
+            <span class="n">g_message_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s1">&#39;g_message_id&#39;</span><span class="p">])</span>
+            <span class="n">pending_posts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PendingPost</span><span class="o">.</span><span class="n">from_group</span><span class="p">(</span><span class="n">group_id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span> <span class="n">g_message_id</span><span class="o">=</span><span class="n">g_message_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">pending_posts</span></div>
+
+<div class="viewcode-block" id="PendingPost.save_post"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.save_post">[docs]</a>    <span class="k">def</span> <span class="nf">save_post</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;PendingPost&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Saves the pending_post in the database&quot;&quot;&quot;</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                              <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;u_message_id&quot;</span><span class="p">,</span> <span class="s2">&quot;g_message_id&quot;</span><span class="p">,</span> <span class="s2">&quot;group_id&quot;</span><span class="p">,</span> <span class="s2">&quot;message_date&quot;</span><span class="p">),</span>
+                              <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="PendingPost.get_votes"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.get_votes">[docs]</a>    <span class="k">def</span> <span class="nf">get_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vote</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets all the votes of a specific kind (approve or reject)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vote: whether you look for the approve or reject votes</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            number of votes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">count_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                                    <span class="n">where</span><span class="o">=</span><span class="s2">&quot;g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2"> and is_upvote = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                    <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">vote</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PendingPost.get_list_admin_votes"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.get_list_admin_votes">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_admin_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vote</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the list of admins that approved or rejected the post</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vote: whether you look for the approve or reject votes</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of admins that approved or rejected a pending post</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">votes</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;admin_id&quot;</span><span class="p">,</span>
+                                      <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                                      <span class="n">where</span><span class="o">=</span><span class="s2">&quot;g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2"> and is_upvote = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                      <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">vote</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">votes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># the vote is not present</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">vote</span><span class="p">[</span><span class="s1">&#39;admin_id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">vote</span> <span class="ow">in</span> <span class="n">votes</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PendingPost.show_admins_votes"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.show_admins_votes">[docs]</a>    <span class="k">def</span> <span class="nf">show_admins_votes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bot</span><span class="p">:</span> <span class="n">Bot</span><span class="p">,</span> <span class="n">approve</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;After a post is been approved or rejected, shows the admins that approved or rejected it \</span>
+<span class="sd">            and edit the message to delete the reply_markup</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bot: bot</span>
+<span class="sd">            approve: whether the vote is approve or reject</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">admins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_list_admin_votes</span><span class="p">(</span><span class="n">vote</span><span class="o">=</span><span class="n">approve</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Approvato da:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">approve</span> <span class="k">else</span> <span class="s2">&quot;Rifiutato da:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;@&#39;</span> <span class="k">if</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;tag&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">admin</span> <span class="ow">in</span> <span class="n">admins</span> <span class="ow">or</span> <span class="p">[]:</span>
+            <span class="n">username</span> <span class="o">=</span> <span class="n">bot</span><span class="o">.</span><span class="n">get_chat</span><span class="p">(</span><span class="n">admin</span><span class="p">)</span><span class="o">.</span><span class="n">username</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tag</span><span class="si">}{</span><span class="n">username</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">username</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bot</span><span class="o">.</span><span class="n">get_chat</span><span class="p">(</span><span class="n">admin</span><span class="p">)</span><span class="o">.</span><span class="n">first_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="n">remaining_pending_posts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;• https://t.me/c/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">post</span><span class="o">.</span><span class="n">group_id</span><span class="p">)[</span><span class="mi">4</span><span class="p">:]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">post</span><span class="o">.</span><span class="n">g_message_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">post</span> <span class="ow">in</span> <span class="vm">__class__</span><span class="o">.</span><span class="n">get_all</span><span class="p">(</span><span class="n">group_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">post</span><span class="o">.</span><span class="n">g_message_id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span>
+        <span class="p">]</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Spot rimanenti:</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">remaining_pending_posts</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">remaining_pending_posts</span> <span class="k">else</span> <span class="n">text</span>
+
+        <span class="n">bot</span><span class="o">.</span><span class="n">edit_message_reply_markup</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">message_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="n">reply_markup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">reply_to_message_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__get_admin_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">admin_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the vote of a specific admin on a pending post</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            admin_id: id of the admin that voted</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            a bool representing the vote or None if a vote was not yet made</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="n">DbManager</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="s2">&quot;is_upvote&quot;</span><span class="p">,</span>
+                                     <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                                     <span class="n">where</span><span class="o">=</span><span class="s2">&quot;admin_id = </span><span class="si">%s</span><span class="s2"> and g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                     <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="n">admin_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># the vote is not present</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">vote</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;is_upvote&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PendingPost.set_admin_vote"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.set_admin_vote">[docs]</a>    <span class="k">def</span> <span class="nf">set_admin_vote</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">admin_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">approval</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds the vote of the admin on a specific post, or update the existing vote, if needed</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            admin_id: id of the admin that voted</span>
+<span class="sd">            approval: whether the vote is approval or reject</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            number of similar votes (all the approve or the reject), or -1 if the vote wasn&#39;t updated</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vote</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_admin_vote</span><span class="p">(</span><span class="n">admin_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vote</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># there isn&#39;t a vote yet</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">insert_into</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                                  <span class="n">columns</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;admin_id&quot;</span><span class="p">,</span> <span class="s2">&quot;g_message_id&quot;</span><span class="p">,</span> <span class="s2">&quot;group_id&quot;</span><span class="p">,</span> <span class="s2">&quot;is_upvote&quot;</span><span class="p">),</span>
+                                  <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="n">admin_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">approval</span><span class="p">))</span>
+            <span class="n">number_of_votes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_votes</span><span class="p">(</span><span class="n">vote</span><span class="o">=</span><span class="n">approval</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">bool</span><span class="p">(</span><span class="n">vote</span><span class="p">)</span> <span class="o">!=</span> <span class="n">approval</span><span class="p">:</span>  <span class="c1"># the vote was different from the approval</span>
+            <span class="n">DbManager</span><span class="o">.</span><span class="n">update_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                                  <span class="n">set_clause</span><span class="o">=</span><span class="s2">&quot;is_upvote = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                  <span class="n">where</span><span class="o">=</span><span class="s2">&quot;admin_id = </span><span class="si">%s</span><span class="s2"> and g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                  <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">approval</span><span class="p">,</span> <span class="n">admin_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">))</span>
+            <span class="n">number_of_votes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_votes</span><span class="p">(</span><span class="n">vote</span><span class="o">=</span><span class="n">approval</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">number_of_votes</span></div>
+
+<div class="viewcode-block" id="PendingPost.delete_post"><a class="viewcode-back" href="../../../modules.data.html#modules.data.pending_post.PendingPost.delete_post">[docs]</a>    <span class="k">def</span> <span class="nf">delete_post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Removes all entries on a post that is no longer pending&quot;&quot;&quot;</span>
+
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;pending_meme&quot;</span><span class="p">,</span>
+                              <span class="n">where</span><span class="o">=</span><span class="s2">&quot;g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                              <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">))</span>
+        <span class="n">DbManager</span><span class="o">.</span><span class="n">delete_from</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;admin_votes&quot;</span><span class="p">,</span>
+                              <span class="n">where</span><span class="o">=</span><span class="s2">&quot;g_message_id = </span><span class="si">%s</span><span class="s2"> and group_id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                              <span class="n">where_args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PendingPost: [ user_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;u_message_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">u_message_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;group_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;g_message_id: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">g_message_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;date : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">date</span><span class="si">}</span><span class="s2"> ]&quot;</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

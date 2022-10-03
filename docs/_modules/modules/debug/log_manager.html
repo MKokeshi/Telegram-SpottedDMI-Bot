@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.debug.log_manager &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>modules.debug.log_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.debug.log_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Handles the logging of events&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">html</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Update</span><span class="p">,</span> <span class="n">ParseMode</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackContext</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">Config</span><span class="p">,</span> <span class="n">get_abs_path</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(name)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Logger enabled&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="error_handler"><a class="viewcode-back" href="../../../modules.debug.html#modules.debug.log_manager.error_handler">[docs]</a><span class="k">def</span> <span class="nf">error_handler</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Logs the error and notifies the admins.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Exception while handling an update:&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">error</span><span class="p">)</span>
+
+    <span class="n">traceback_list</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exception</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">__traceback__</span><span class="p">)</span>
+    <span class="n">traceback_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">traceback_list</span><span class="p">)</span>
+
+    <span class="n">min_traceback_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">traceback_list</span> <span class="k">if</span> <span class="s2">&quot;modules&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">]</span>
+    <span class="n">min_traceback_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">traceback_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">min_traceback_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">min_traceback_list</span><span class="p">)</span>
+    <span class="n">notify_error_admin</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="n">traceback_str</span><span class="o">=</span><span class="n">min_traceback_str</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>  <span class="c1"># log the error</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_abs_path</span><span class="p">(</span><span class="s2">&quot;logs&quot;</span><span class="p">,</span> <span class="s2">&quot;errors.log&quot;</span><span class="p">),</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log_file</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">___ERROR LOG___</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;time: </span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;error: </span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;error_traceback: </span><span class="si">{</span><span class="n">traceback_str</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="n">update</span> <span class="ow">and</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>  <span class="c1"># if the update contains a message, show additional info</span>
+                <span class="n">chat</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">chat</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;id_message:  </span><span class="si">{</span><span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">message_id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                            <span class="sa">f</span><span class="s2">&quot;chat_id:  </span><span class="si">{</span><span class="n">chat</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                            <span class="sa">f</span><span class="s2">&quot;chat_type:  </span><span class="si">{</span><span class="n">chat</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                            <span class="sa">f</span><span class="s2">&quot;chat_title:  </span><span class="si">{</span><span class="n">chat</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                            <span class="sa">f</span><span class="s2">&quot;message_date:  </span><span class="si">{</span><span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">date</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">message</span> <span class="o">+=</span> <span class="s2">&quot;_____________</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">log_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">message</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="notify_error_admin"><a class="viewcode-back" href="../../../modules.debug.html#modules.debug.log_manager.notify_error_admin">[docs]</a><span class="k">def</span> <span class="nf">notify_error_admin</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">,</span> <span class="n">traceback_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sends a telegram message to notify the admins.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        context: context passed by the handler</span>
+<span class="sd">        traceback_str: the traceback text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">traceback_str</span> <span class="o">=</span> <span class="n">traceback_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">settings_get</span><span class="p">(</span><span class="s2">&quot;token&quot;</span><span class="p">),</span> <span class="s2">&quot;[bot_token]&quot;</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;An exception was raised:</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;&lt;pre&gt;</span><span class="si">{</span><span class="n">html</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">traceback_str</span><span class="p">)</span><span class="si">}</span><span class="s1">&lt;/pre&gt;&#39;</span><span class="p">)</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">parse_mode</span><span class="o">=</span><span class="n">ParseMode</span><span class="o">.</span><span class="n">HTML</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="log_message"><a class="viewcode-back" href="../../../modules.debug.html#modules.debug.log_manager.log_message">[docs]</a><span class="k">def</span> <span class="nf">log_message</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Log the message that caused the update</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">get_abs_path</span><span class="p">(</span><span class="s2">&quot;logs&quot;</span><span class="p">,</span> <span class="s2">&quot;messages.log&quot;</span><span class="p">),</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log_file</span><span class="p">:</span>
+
+                <span class="n">user</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">from_user</span>
+                <span class="n">chat</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">chat</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">___ID MESSAGE:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span><span class="si">}</span><span class="s2"> ____</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="s2">&quot;___INFO USER___</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;user_id:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;user_name:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;user_first_lastname: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">first_name</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">last_name</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="s2">&quot;___INFO CHAT___</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;chat_id:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">chat</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;chat_type:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">chat</span><span class="o">.</span><span class="n">type</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;chat_title:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">chat</span><span class="o">.</span><span class="n">title</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="s2">&quot;___TESTO___</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;text:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                        <span class="sa">f</span><span class="s2">&quot;date:  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">update</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">date</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>\
+                        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">_____________</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">log_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">message</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

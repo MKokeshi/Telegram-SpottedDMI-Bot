@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tests.unit.test_bot &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>tests.unit.test_bot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tests.unit.test_bot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># pylint: disable=unused-argument,redefined-outer-name</span>
+<span class="sd">&quot;&quot;&quot;Tests the bot functionality&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">Message</span><span class="p">,</span> <span class="n">MessageEntity</span><span class="p">,</span> <span class="n">user</span>
+<span class="kn">from</span> <span class="nn">tests.unit.util</span> <span class="kn">import</span> <span class="n">TelegramSimulator</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">Config</span><span class="p">,</span> <span class="n">read_md</span><span class="p">,</span> <span class="n">DbManager</span><span class="p">,</span> <span class="n">User</span><span class="p">,</span> <span class="n">PendingPost</span><span class="p">,</span> <span class="n">PublishedPost</span><span class="p">,</span> <span class="n">Report</span>
+<span class="kn">from</span> <span class="nn">modules.handlers.constants</span> <span class="kn">import</span> <span class="n">CHAT_PRIVATE_ERROR</span><span class="p">,</span> <span class="n">AUTOREPLIES</span>
+
+
+<div class="viewcode-block" id="local_table"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.local_table">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">local_table</span><span class="p">(</span><span class="n">init_local_test_db</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DbManager</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Resets the state of the database</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">init_local_test_db</span><span class="o">.</span><span class="n">query_from_file</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;db&quot;</span><span class="p">,</span> <span class="s2">&quot;meme_db_del.sql&quot;</span><span class="p">)</span>
+    <span class="n">init_local_test_db</span><span class="o">.</span><span class="n">query_from_file</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;db&quot;</span><span class="p">,</span> <span class="s2">&quot;meme_db_init.sql&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">init_local_test_db</span></div>
+
+
+<div class="viewcode-block" id="telegram"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.telegram">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">telegram</span><span class="p">(</span><span class="n">local_table</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TelegramSimulator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Creates a telegram simulator object</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        telegram weaver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">TelegramSimulator</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="pending_post_message"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.pending_post_message">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">pending_post_message</span><span class="p">(</span><span class="n">local_table</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Simulates an existing pending post</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pending post message</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">PendingPost</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="n">message_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="published_post_message"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.published_post_message">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">published_post_message</span><span class="p">(</span><span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">channel_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Simulates an existing published post</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        published post message</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">c_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">message_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">chat</span><span class="o">=</span><span class="n">channel</span><span class="p">)</span>
+    <span class="n">telegram</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="n">c_message</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;comments&#39;</span><span class="p">):</span>
+        <span class="n">telegram</span><span class="o">.</span><span class="n">send_forward_message</span><span class="p">(</span><span class="n">forward_message</span><span class="o">=</span><span class="n">c_message</span><span class="p">,</span>
+                                      <span class="n">chat</span><span class="o">=</span><span class="n">channel_group</span><span class="p">,</span>
+                                      <span class="n">is_automatic_forward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_name</span><span class="o">=</span><span class="s2">&quot;Telegram&quot;</span><span class="p">,</span> <span class="n">is_bot</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">PublishedPost</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="n">channel_group</span><span class="p">,</span> <span class="n">c_message_id</span><span class="o">=</span><span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span>
+
+    <span class="n">PublishedPost</span><span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">c_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">c_message</span></div>
+
+
+<div class="viewcode-block" id="report_user_message"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.report_user_message">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">report_user_message</span><span class="p">(</span><span class="n">local_table</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Simulates an existing user report</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        user report message</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Report</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_username</span><span class="o">=</span><span class="s1">&#39;BadUser&#39;</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">save_report</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="n">message_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="report_spot_message"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.report_spot_message">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;function&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">report_spot_message</span><span class="p">(</span><span class="n">local_table</span><span class="p">:</span> <span class="n">DbManager</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Chat</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Message</span><span class="p">,</span> <span class="n">Message</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each function.</span>
+<span class="sd">    Simulates an existing spot report</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        spot report in the admin group and post in the channel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Report</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">channel_id</span><span class="o">=</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_id&#39;</span><span class="p">),</span> <span class="n">c_message_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">save_report</span><span class="p">()</span>
+    <span class="n">group_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">message_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span>
+    <span class="n">channel_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">message_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">chat</span><span class="o">=</span><span class="n">channel</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">group_message</span><span class="p">,</span> <span class="n">channel_message</span></div>
+
+
+<div class="viewcode-block" id="channel"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.channel">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">channel</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Chat</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each class.</span>
+<span class="sd">    Returns the channel chat</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        admin user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_id&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Chat</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Chat</span><span class="o">.</span><span class="n">CHANNEL</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="admin_group"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.admin_group">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">admin_group</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Chat</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each class.</span>
+<span class="sd">    Returns the admin group chat</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        admin user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Chat</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">group_id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Chat</span><span class="o">.</span><span class="n">GROUP</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="channel_group"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.channel_group">[docs]</a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;class&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">channel_group</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Chat</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Called once per at the beginning of each class.</span>
+<span class="sd">    Returns the chat of the public group with the comments</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        admin user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">channel_group_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_group_id&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Chat</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">channel_group_id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Chat</span><span class="o">.</span><span class="n">GROUP</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TestBot"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot">[docs]</a><span class="k">class</span> <span class="nc">TestBot</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Tests the bot simulating the telegram API&#39;s responses&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestBotBasicCommand"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotBasicCommand">[docs]</a>    <span class="k">class</span> <span class="nc">TestBotBasicCommand</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the bot commands&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestBotBasicCommand.test_start_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotBasicCommand.test_start_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_start_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /start command.</span>
+<span class="sd">            The bot sends the start response to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/start&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotBasicCommand.test_help_user_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotBasicCommand.test_help_user_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_help_user_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /help command.</span>
+<span class="sd">            The bot sends the help response to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/help&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;help&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotBasicCommand.test_help_admin_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotBasicCommand.test_help_admin_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_help_admin_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /help command.</span>
+<span class="sd">            The bot sends the help response to the admins</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/help&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;instructions&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotBasicCommand.test_rules_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotBasicCommand.test_rules_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_rules_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /rules command.</span>
+<span class="sd">            The bot sends the rules response to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/rules&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;rules&quot;</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand">[docs]</a>    <span class="k">class</span> <span class="nc">TestBotAdminCommand</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the bot commands reserved for admins&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_ban_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_ban_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_ban_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /ban command.</span>
+<span class="sd">            The bot bans the user associated with the pending post</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/ban&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;L&#39;utente è stato bannato&quot;</span>
+            <span class="k">assert</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_group</span><span class="p">(</span><span class="n">pending_post_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="o">.</span><span class="n">chat_id</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_banned</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_sban_invalid_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_sban_invalid_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_sban_invalid_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /sban command.</span>
+<span class="sd">            The bot warns about invalid command</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/sban&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;[uso]: /sban &lt;user_id1&gt; [...user_id2]&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_sban_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_sban_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_sban_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /sban command.</span>
+<span class="sd">            The bot sbans the users specified user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ban</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/sban 1&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sban effettuato&quot;</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_banned</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_reply_invalid_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_reply_invalid_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_reply_invalid_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot warns about invalid command</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/reply&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;La reply è vuota</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_reply_post_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_reply_post_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_reply_post_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot sends a message to the user on behalf of the admin</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/reply TEST&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;COMUNICAZIONE DEGLI ADMIN SUL TUO ULTIMO POST:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;TEST&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;L&#39;utente ha ricevuto il messaggio&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_reply_report_user_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_reply_report_user_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_reply_report_user_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">report_user_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot sends a message to the user on behalf of the admin</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/reply TEST&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">report_user_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;COMUNICAZIONE DEGLI ADMIN SUL TUO ULTIMO REPORT:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;TEST&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;L&#39;utente ha ricevuto il messaggio&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_reply_report_spot_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_reply_report_spot_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_reply_report_spot_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">report_spot_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot sends a message to the user on behalf of the admin</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">group_message</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">report_spot_message</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/reply TEST&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">group_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;COMUNICAZIONE DEGLI ADMIN SUL TUO ULTIMO REPORT:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;TEST&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;L&#39;utente ha ricevuto il messaggio&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_clean_pending"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_clean_pending">[docs]</a>        <span class="k">def</span> <span class="nf">test_clean_pending</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /clean_pending command.</span>
+<span class="sd">            The bot cleans the old pending posts, while ignoring the more recent ones</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># An old an a recent pending posts are present</span>
+            <span class="n">PendingPost</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span>
+            <span class="n">PendingPost</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">),</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/clean_pending&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span>
+                <span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admin erano sicuramente molto impegnati e non sono riusciti a valutare lo spot in tempo&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sono stati eliminati 1 messaggi rimasti in sospeso&quot;</span>
+            <span class="k">assert</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_user</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_user</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_autoreply_invalid_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_autoreply_invalid_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_autoreply_invalid_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /autoreply command.</span>
+<span class="sd">            The bot lists all available autoreplies</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/autoreply&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;autoreply_list&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_autoreply_unknown_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_autoreply_unknown_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_autoreply_unknown_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /autoreply command.</span>
+<span class="sd">            The bot lists all available autoreplies</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;/autoreply unknown&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;autoreply_list&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_autoreply_list_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_autoreply_list_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_autoreply_list_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot sends an automatic reply to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># remove the &quot;list&quot; special autoreply</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/autoreply list&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;autoreply_list&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotAdminCommand.test_autoreply_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotAdminCommand.test_autoreply_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_autoreply_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">pending_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /reply command.</span>
+<span class="sd">            The bot sends an automatic reply to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># remove the &quot;list&quot; special autoreply</span>
+            <span class="n">filtered_autoreplies</span> <span class="o">=</span> <span class="p">((</span><span class="n">autoreply</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">autoreply</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span> <span class="ow">in</span> <span class="n">AUTOREPLIES</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">autoreply</span> <span class="o">!=</span> <span class="s2">&quot;lista&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">autoreply</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span> <span class="ow">in</span> <span class="n">filtered_autoreplies</span><span class="p">:</span>
+                <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/autoreply </span><span class="si">{</span><span class="n">autoreply</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">admin_group</span><span class="p">,</span> <span class="n">reply_to_message</span><span class="o">=</span><span class="n">pending_post_message</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;COMUNICAZIONE DEGLI ADMIN SUL TUO ULTIMO POST:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">read_md</span><span class="p">(</span><span class="n">file</span><span class="p">))</span>
+                <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;L&#39;utente ha ricevuto il messaggio&quot;</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation">[docs]</a>    <span class="k">class</span> <span class="nc">TestBotSpotConversation</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the spot conversation&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_no_private_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_no_private_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_no_private_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">channel_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Spot is not allowed in groups</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">,</span> <span class="n">chat</span><span class="o">=</span><span class="n">channel_group</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">CHAT_PRIVATE_ERROR</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_banned_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_banned_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_banned_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Spot is not allowed for banned users</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ban</span><span class="p">()</span>  <span class="c1"># by default the user used by the telegram simulator has id 1</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei stato bannato 😅&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_pending_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_pending_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_pending_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Spot is not allowed for users with a pending post</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">PendingPost</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">u_message_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g_message_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">save_post</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Hai già un post in approvazione 🧐&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_cancel_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_cancel_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_cancel_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Cancel spot conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/cancel&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;spot_cancel&quot;</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_no_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_no_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_no_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Complete with no the spot conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Test spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">reply_to_message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;No&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="n">read_md</span><span class="p">(</span><span class="s2">&quot;no_strings&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_si_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_si_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_si_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Complete with yes the spot conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Test spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">reply_to_message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;Si&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Il tuo post è in fase di valutazione</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;Una volta pubblicato, lo potrai trovare su </span><span class="si">{</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_tag&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Hai già un post in approvazione 🧐&quot;</span>
+
+            <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_user</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">delete_post</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_link_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_link_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Send spot with a link</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Hai vinto un iPad 🎉&quot;</span><span class="p">,</span>
+                                  <span class="n">entities</span><span class="o">=</span><span class="p">[</span>
+                                      <span class="n">MessageEntity</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">MessageEntity</span><span class="o">.</span><span class="n">URL</span><span class="p">,</span>
+                                                    <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                                    <span class="n">length</span><span class="o">=</span><span class="mi">19</span><span class="p">,</span>
+                                                    <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://www.youtube.com/watch?v=dQw4w9WgXcQ&quot;</span><span class="p">)</span>
+                                  <span class="p">])</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Il post contiene link, vuoi pubblicare con l&#39;anteprima?&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_link_with_preview_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_link_with_preview_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link_with_preview_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Send spot with a link with preview and complete the conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_spot_link_cmd</span><span class="p">(</span><span class="n">telegram</span><span class="p">)</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;Si&quot;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSpotConversation.test_spot_link_without_preview_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSpotConversation.test_spot_link_without_preview_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link_without_preview_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Send spot with a link with preview and complete the conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_spot_link_cmd</span><span class="p">(</span><span class="n">telegram</span><span class="p">)</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;No&quot;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings">[docs]</a>    <span class="k">class</span> <span class="nc">TestBotSettings</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the settings commands&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings.test_settings_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings.test_settings_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_settings_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /settings command.</span>
+<span class="sd">            The bot sends the settings response to the user</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/settings&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;***Come vuoi che sia il tuo post:***&quot;</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings.test_settings_anonym_from_anonym_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings.test_settings_anonym_from_anonym_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_settings_anonym_from_anonym_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /settings command.</span>
+<span class="sd">            The user becomes anonym already being anonym</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/settings&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;***Come vuoi che sia il tuo post:***&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot; Anonimo &quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei già anonimo&quot;</span>
+
+            <span class="k">assert</span> <span class="ow">not</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_credited</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings.test_settings_anonym_from_credited_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings.test_settings_anonym_from_credited_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_settings_anonym_from_credited_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /settings command.</span>
+<span class="sd">            The user becomes anonym from being credited</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">become_credited</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/settings&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;***Come vuoi che sia il tuo post:***&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot; Anonimo &quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;La tua preferenza è stata aggiornata</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                                                    <span class="s2">&quot;Ora i tuoi post saranno anonimi&quot;</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_credited</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings.test_settings_credited_from_anonym_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings.test_settings_credited_from_anonym_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_settings_credited_from_anonym_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /settings command.</span>
+<span class="sd">            The user becomes credited from being anonym</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/settings&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;***Come vuoi che sia il tuo post:***&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot; Con credit &quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;La tua preferenza è stata aggiornata</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                                                    <span class="sa">f</span><span class="s2">&quot;I tuoi post avranno come credit @</span><span class="si">{</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">assert</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_credited</span></div>
+
+<div class="viewcode-block" id="TestBot.TestBotSettings.test_settings_credited_from_credited_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestBotSettings.test_settings_credited_from_credited_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_settings_credited_from_credited_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /settings command.</span>
+<span class="sd">            The user becomes credited already being credited</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">become_credited</span><span class="p">()</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/settings&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;***Come vuoi che sia il tuo post:***&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot; Con credit &quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei già creditato nei post</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                                                    <span class="sa">f</span><span class="s2">&quot;I tuoi post avranno come credit @</span><span class="si">{</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">assert</span> <span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">is_credited</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestReportUser"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportUser">[docs]</a>    <span class="k">class</span> <span class="nc">TestReportUser</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the report user commands&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestReportUser.test_report_user_invalid_username_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportUser.test_report_user_invalid_username_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_report_user_invalid_username_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /report user command.</span>
+<span class="sd">            The username submitted is not a valid Telegram username</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/report&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia l&#39;username di chi vuoi segnalare. Es. @massimobene&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;massimobene&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Questo tipo di messaggio non è supportato</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;@massimo bene&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Questo tipo di messaggio non è supportato</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBot.TestReportUser.test_report_user_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportUser.test_report_user_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_report_user_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /report user command.</span>
+<span class="sd">            The bot sends the report from the user to the admins</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/report&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia l&#39;username di chi vuoi segnalare. Es. @massimobene&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;@massimobene&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Scrivi il motivo della tua segnalazione.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Motivo segnalazione&quot;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;🚨🚨 SEGNALAZIONE 🚨🚨</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span>
+            <span class="k">assert</span> <span class="n">Report</span><span class="o">.</span><span class="n">get_last_user_report</span><span class="p">(</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestBot.TestReportUser.test_report_user_cooldown_cmd"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportUser.test_report_user_cooldown_cmd">[docs]</a>        <span class="k">def</span> <span class="nf">test_report_user_cooldown_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /report user command&#39;s cooldown timer.</span>
+<span class="sd">            The user cannot report again for the amount of time established in the settings</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/report&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia l&#39;username di chi vuoi segnalare. Es. @massimobene&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;@massimobene&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Scrivi il motivo della tua segnalazione.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Motivo segnalazione&quot;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;🚨🚨 SEGNALAZIONE 🚨🚨</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span>
+            <span class="k">assert</span> <span class="n">Report</span><span class="o">.</span><span class="n">get_last_user_report</span><span class="p">(</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/report&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;Aspetta </span><span class="si">{</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;report_wait_mins&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> minuti&quot;</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestReportSpot"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportSpot">[docs]</a>    <span class="k">class</span> <span class="nc">TestReportSpot</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the report spot commands&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestReportSpot.test_report_post_query"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportSpot.test_report_post_query">[docs]</a>        <span class="k">def</span> <span class="nf">test_report_post_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">published_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /report user query.</span>
+<span class="sd">            The user successfully reports a post already published in the channel</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;meme_report_spot,&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">published_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Scrivi il motivo della segnalazione del post, altrimenti digita /cancel&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Motivo segnalazione&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;🚨🚨 SEGNALAZIONE 🚨🚨</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span>
+            <span class="k">assert</span> <span class="n">Report</span><span class="o">.</span><span class="n">get_post_report</span><span class="p">(</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">published_post_message</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                                          <span class="n">published_post_message</span><span class="o">.</span><span class="n">reply_to_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestBot.TestReportSpot.test_report_post_again_query"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestReportSpot.test_report_post_again_query">[docs]</a>        <span class="k">def</span> <span class="nf">test_report_post_again_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">published_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /report user query.</span>
+<span class="sd">            The user cannot report again a post already published in the channel</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;meme_report_spot,&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">published_post_message</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Scrivi il motivo della segnalazione del post, altrimenti digita /cancel&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Motivo segnalazione&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;🚨🚨 SEGNALAZIONE 🚨🚨</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span>
+            <span class="k">assert</span> <span class="n">Report</span><span class="o">.</span><span class="n">get_post_report</span><span class="p">(</span><span class="n">telegram</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">published_post_message</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                                          <span class="n">published_post_message</span><span class="o">.</span><span class="n">reply_to_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;meme_report_spot,&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">published_post_message</span><span class="p">)</span>
+            <span class="c1"># The next message is the same as the last, because if the user try to report again</span>
+            <span class="c1"># the query will be answered with a warning but no new messages will be sent by the bot</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestSpotLinkPreview"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestSpotLinkPreview">[docs]</a>    <span class="k">class</span> <span class="nc">TestSpotLinkPreview</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Test the spot link preview&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestSpotLinkPreview.test_spot_link"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestSpotLinkPreview.test_spot_link">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Send spot with a link</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Hai vinto un iPad 🎉&quot;</span><span class="p">,</span>
+                                  <span class="n">entities</span><span class="o">=</span><span class="p">[</span>
+                                      <span class="n">MessageEntity</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">MessageEntity</span><span class="o">.</span><span class="n">URL</span><span class="p">,</span>
+                                                    <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                                    <span class="n">length</span><span class="o">=</span><span class="mi">19</span><span class="p">,</span>
+                                                    <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://www.youtube.com/watch?v=dQw4w9WgXcQ&quot;</span><span class="p">)</span>
+                                  <span class="p">])</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Il post contiene link, vuoi pubblicare con l&#39;anteprima?&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">reply_to_message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestBot.TestSpotLinkPreview.test_spot_link_with_preview"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestSpotLinkPreview.test_spot_link_with_preview">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link_with_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Complete with yes the spot with link preview conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_spot_link</span><span class="p">(</span><span class="n">telegram</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;Si&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span>
+
+            <span class="c1"># The last edited message will not have the reply_to_message attribute (because of bot APIs)</span>
+            <span class="c1"># So instead we use the original message (the one that was sent before the callback query)</span>
+            <span class="c1"># and specify the data of the callback query manually</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;meme_confirm,submit&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">g_message</span> <span class="o">=</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">entity</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">g_message</span><span class="o">.</span><span class="n">entities</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">MessageEntity</span><span class="o">.</span><span class="n">URL</span> <span class="ow">in</span> <span class="n">types</span></div>
+
+<div class="viewcode-block" id="TestBot.TestSpotLinkPreview.test_spot_link_without_preview"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestSpotLinkPreview.test_spot_link_without_preview">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_link_without_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Complete with no the spot without link preview conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_spot_link</span><span class="p">(</span><span class="n">telegram</span><span class="p">)</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;No&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">&quot;meme_confirm,submit&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">g_message</span> <span class="o">=</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">entity</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">g_message</span><span class="o">.</span><span class="n">entities</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">MessageEntity</span><span class="o">.</span><span class="n">URL</span> <span class="ow">in</span> <span class="n">types</span></div></div>
+            <span class="c1"># NOTE: There is no way to check if message has preview</span>
+
+<div class="viewcode-block" id="TestBot.TestPublishSpot"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestPublishSpot">[docs]</a>    <span class="k">class</span> <span class="nc">TestPublishSpot</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the complete publishing spot pipeline&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestPublishSpot.test_spot_pipeline"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestPublishSpot.test_spot_pipeline">[docs]</a>        <span class="k">def</span> <span class="nf">test_spot_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">admin_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span> <span class="n">channel_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the /spot command.</span>
+<span class="sd">            Complete with yes the spot conversation</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_command</span><span class="p">(</span><span class="s2">&quot;/spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Invia il post che vuoi pubblicare&quot;</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Test spot&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Sei sicuro di voler pubblicare questo post?&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">reply_to_message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;Si&quot;</span><span class="p">)</span>
+            <span class="n">g_message</span> <span class="o">=</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">g_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Test spot&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Il tuo post è in fase di valutazione</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="sa">f</span><span class="s2">&quot;Una volta pubblicato, lo potrai trovare su </span><span class="si">{</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;channel_tag&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_group</span><span class="p">(</span><span class="n">g_message_id</span><span class="o">=</span><span class="n">g_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="n">admin_group</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;🟢 0&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">g_message</span><span class="p">)</span>
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_callback_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;🟢 1&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">g_message</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">first_name</span><span class="o">=</span><span class="s2">&quot;Test2&quot;</span><span class="p">,</span> <span class="n">is_bot</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Test spot&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Il tuo ultimo post è stato pubblicato&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Approvato da:&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">PendingPost</span><span class="o">.</span><span class="n">from_group</span><span class="p">(</span><span class="n">g_message_id</span><span class="o">=</span><span class="n">g_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">,</span> <span class="n">group_id</span><span class="o">=</span><span class="n">admin_group</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+
+            <span class="n">telegram</span><span class="o">.</span><span class="n">send_forward_message</span><span class="p">(</span><span class="n">forward_message</span><span class="o">=</span><span class="n">telegram</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">],</span>
+                                          <span class="n">chat</span><span class="o">=</span><span class="n">channel_group</span><span class="p">,</span>
+                                          <span class="n">is_automatic_forward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                          <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_name</span><span class="o">=</span><span class="s2">&quot;Telegram&quot;</span><span class="p">,</span> <span class="n">is_bot</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;by: &quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">PublishedPost</span><span class="p">(</span><span class="n">channel_id</span><span class="o">=</span><span class="n">channel</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">c_message_id</span><span class="o">=</span><span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="TestBot.TestComments"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestComments">[docs]</a>    <span class="k">class</span> <span class="nc">TestComments</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Tests the comments feature in the channel group&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestBot.TestComments.test_non_anonymous_comment_msg"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestComments.test_non_anonymous_comment_msg">[docs]</a>        <span class="k">def</span> <span class="nf">test_non_anonymous_comment_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">published_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span>
+                                           <span class="n">channel_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests a public comment.</span>
+<span class="sd">            The bot should not react to the message if the user is not anonymous</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">public_comment</span> <span class="o">=</span> <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Public comment&quot;</span><span class="p">,</span>
+                                                   <span class="n">chat</span><span class="o">=</span><span class="n">channel_group</span><span class="p">,</span>
+                                                   <span class="n">reply_to_message</span><span class="o">=</span><span class="n">published_post_message</span><span class="o">.</span><span class="n">reply_to_message</span><span class="p">,</span>
+                                                   <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">first_name</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">is_bot</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">get_message_with_id</span><span class="p">(</span><span class="n">public_comment</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Public comment&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">is_bot</span> <span class="ow">is</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="TestBot.TestComments.test_anonymous_comment_msg"><a class="viewcode-back" href="../../../tests.html#tests.unit.test_bot.TestBot.TestComments.test_anonymous_comment_msg">[docs]</a>        <span class="k">def</span> <span class="nf">test_anonymous_comment_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">telegram</span><span class="p">:</span> <span class="n">TelegramSimulator</span><span class="p">,</span> <span class="n">published_post_message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Chat</span><span class="p">,</span>
+                                       <span class="n">channel_group</span><span class="p">:</span> <span class="n">Chat</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Tests the replacement of an anonymous comment.</span>
+<span class="sd">            Copies the message and deletes the original</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">anonymous_comment</span> <span class="o">=</span> <span class="n">telegram</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">&quot;Anonymous comment&quot;</span><span class="p">,</span>
+                                                      <span class="n">chat</span><span class="o">=</span><span class="n">channel_group</span><span class="p">,</span>
+                                                      <span class="n">reply_to_message</span><span class="o">=</span><span class="n">published_post_message</span><span class="o">.</span><span class="n">reply_to_message</span><span class="p">,</span>
+                                                      <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">first_name</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">is_bot</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                                                      <span class="n">sender_chat</span><span class="o">=</span><span class="n">channel</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">get_message_with_id</span><span class="p">(</span><span class="n">anonymous_comment</span><span class="o">.</span><span class="n">message_id</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>  <span class="c1"># the anonymous comment is deleted</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;Anonymous comment&quot;</span>
+            <span class="k">assert</span> <span class="n">telegram</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">from_user</span><span class="o">.</span><span class="n">is_bot</span> <span class="ow">is</span> <span class="kc">True</span></div></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.handlers.report_user &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../handlers.html">modules.handlers</a> &raquo;</li>
+      <li>modules.handlers.report_user</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.handlers.report_user</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;/report command&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">telegram</span> <span class="kn">import</span> <span class="n">Update</span>
+<span class="kn">from</span> <span class="nn">telegram.ext</span> <span class="kn">import</span> <span class="n">CallbackContext</span><span class="p">,</span> <span class="n">ConversationHandler</span><span class="p">,</span> <span class="n">CommandHandler</span><span class="p">,</span> <span class="n">MessageHandler</span><span class="p">,</span> <span class="n">Filters</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">Report</span>
+<span class="kn">from</span> <span class="nn">modules.utils</span> <span class="kn">import</span> <span class="n">EventInfo</span><span class="p">,</span> <span class="n">conv_cancel</span>
+<span class="kn">from</span> <span class="nn">modules.data</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">.constants</span> <span class="kn">import</span> <span class="n">CHAT_PRIVATE_ERROR</span><span class="p">,</span> <span class="n">INVALID_MESSAGE_TYPE_ERROR</span>
+
+<span class="n">STATE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;reporting_user&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;reporting_user_reason&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="report_user_conv_handler"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.report_user.report_user_conv_handler">[docs]</a><span class="k">def</span> <span class="nf">report_user_conv_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ConversationHandler</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates the /report (user) conversation handler.</span>
+<span class="sd">    The states are:</span>
+
+<span class="sd">    - reporting_user: submit the username to report. Expects text starting with @ and without spaces in between</span>
+<span class="sd">    - reporting_user_reason: submit the reason of the report. Expects text</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        conversation handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ConversationHandler</span><span class="p">(</span>
+        <span class="n">entry_points</span><span class="o">=</span><span class="p">[</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">report_cmd</span><span class="p">)],</span>
+        <span class="n">states</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user&#39;</span><span class="p">]:</span> <span class="p">[</span><span class="n">MessageHandler</span><span class="p">(</span><span class="o">~</span><span class="n">Filters</span><span class="o">.</span><span class="n">command</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">Filters</span><span class="o">.</span><span class="n">update</span><span class="o">.</span><span class="n">edited_message</span><span class="p">,</span> <span class="n">report_user_msg</span><span class="p">)],</span>
+            <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user_reason&#39;</span><span class="p">]:</span> <span class="p">[</span>
+                <span class="n">MessageHandler</span><span class="p">(</span><span class="o">~</span><span class="n">Filters</span><span class="o">.</span><span class="n">command</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">Filters</span><span class="o">.</span><span class="n">update</span><span class="o">.</span><span class="n">edited_message</span><span class="p">,</span> <span class="n">report_user_sent_msg</span><span class="p">)</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="n">fallbacks</span><span class="o">=</span><span class="p">[</span><span class="n">CommandHandler</span><span class="p">(</span><span class="s2">&quot;cancel&quot;</span><span class="p">,</span> <span class="n">conv_cancel</span><span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">))],</span>
+        <span class="n">allow_reentry</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="report_cmd"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.report_user.report_cmd">[docs]</a><span class="k">def</span> <span class="nf">report_cmd</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the reply to the key &quot;Report&quot;.</span>
+<span class="sd">    Checks the message the user wants to report</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        next state of the conversation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_message</span><span class="p">(</span><span class="n">update</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="o">.</span><span class="n">is_private_chat</span><span class="p">:</span>  <span class="c1"># you can only post with a private message</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">CHAT_PRIVATE_ERROR</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span>
+
+    <span class="n">user_report</span> <span class="o">=</span> <span class="n">Report</span><span class="o">.</span><span class="n">get_last_user_report</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">user_report</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">minutes_elapsed</span> <span class="o">=</span> <span class="n">user_report</span><span class="o">.</span><span class="n">minutes_passed</span>
+        <span class="n">remain_minutes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;report_wait_mins&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="n">minutes_elapsed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">remain_minutes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Aspetta </span><span class="si">{</span><span class="n">remain_minutes</span><span class="si">}</span><span class="s2"> minuti&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span>
+
+    <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Invia l&#39;username di chi vuoi segnalare. Es. @massimobene&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="report_user_msg"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.report_user.report_user_msg">[docs]</a><span class="k">def</span> <span class="nf">report_user_msg</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the reply to the /report command after sent the @username.</span>
+<span class="sd">    Checks the the user wants to report, and goes to ask the reason</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        next state of the conversation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_message</span><span class="p">(</span><span class="n">update</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="o">.</span><span class="n">is_valid_message_type</span> \
+    <span class="ow">or</span> <span class="ow">not</span> <span class="n">info</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span> \
+    <span class="ow">or</span> <span class="n">info</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># the type is NOT supported</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+            <span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+            <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Questo tipo di messaggio non è supportato</span><span class="se">\n</span><span class="s2">&quot;</span>\
+                <span class="s2">&quot;È consentito solo username telegram. Puoi annullare il processo con /cancel&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">user_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span>
+
+    <span class="n">context</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s1">&#39;current_report_target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+        <span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+        <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Scrivi il motivo della tua segnalazione.</span><span class="se">\n</span><span class="s2">&quot;</span>\
+            <span class="s2">&quot;Cerca di essere esaustivo, potrai inviare un altro report &quot;</span>\
+            <span class="sa">f</span><span class="s2">&quot;dopo </span><span class="si">{</span><span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;report_wait_mins&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> minuti.</span><span class="se">\n</span><span class="s2">&quot;</span>\
+            <span class="s2">&quot;Puoi annullare il processo con /cancel&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user_reason&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="report_user_sent_msg"><a class="viewcode-back" href="../../../modules.handlers.html#modules.handlers.report_user.report_user_sent_msg">[docs]</a><span class="k">def</span> <span class="nf">report_user_sent_msg</span><span class="p">(</span><span class="n">update</span><span class="p">:</span> <span class="n">Update</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">CallbackContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handles the reply to the /report command after sent the reason.</span>
+<span class="sd">    Checks the the user wants to report, and goes to final step</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        update: update event</span>
+<span class="sd">        context: context passed by the handler</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        next state of the conversation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EventInfo</span><span class="o">.</span><span class="n">from_message</span><span class="p">(</span><span class="n">update</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="o">.</span><span class="n">is_valid_message_type</span><span class="p">:</span>  <span class="c1"># the type is NOT supported</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">INVALID_MESSAGE_TYPE_ERROR</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;reporting_user_reason&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">user_data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;current_report_target&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">user_data</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span>
+
+    <span class="n">target_username</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s1">&#39;current_report_target&#39;</span><span class="p">]</span>
+
+    <span class="n">chat_id</span> <span class="o">=</span> <span class="n">Config</span><span class="o">.</span><span class="n">meme_get</span><span class="p">(</span><span class="s1">&#39;group_id&#39;</span><span class="p">)</span>  <span class="c1"># should be admin group</span>
+    <span class="n">admin_message</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">sendMessage</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">chat_id</span><span class="p">,</span>
+                                         <span class="n">text</span><span class="o">=</span><span class="s2">&quot;🚨🚨 SEGNALAZIONE 🚨🚨</span><span class="se">\n\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;Username: &quot;</span> <span class="o">+</span> <span class="n">target_username</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">info</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="n">info</span><span class="o">.</span><span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">chat_id</span><span class="p">,</span>
+                          <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Gli admins verificheranno quanto accaduto. Grazie per la collaborazione!&quot;</span><span class="p">)</span>
+
+    <span class="n">Report</span><span class="o">.</span><span class="n">create_user_report</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span> <span class="n">target_username</span><span class="o">=</span><span class="n">target_username</span><span class="p">,</span> <span class="n">admin_message</span><span class="o">=</span><span class="n">admin_message</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">STATE</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

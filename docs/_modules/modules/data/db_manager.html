@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>modules.data.db_manager &mdash; Spotted dmi bot  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dark.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/general.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/dark_mode_css/dark.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/dark_mode_js/default_dark.js"></script>
+        <script src="../../../_static/dark_mode_js/theme_switcher.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Spotted dmi bot
+            <img src="../../../_static/spotted-logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../main.html">Main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">All modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dbschema.html">Database schema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tests.html">Tests modules</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Spotted dmi bot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>modules.data.db_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for modules.data.db_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Handles the management of databases&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">from</span> <span class="nn">.data_reader</span> <span class="kn">import</span> <span class="n">get_abs_path</span><span class="p">,</span> <span class="n">read_file</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DbManager"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager">[docs]</a><span class="k">class</span> <span class="nc">DbManager</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Class that handles the management of databases&quot;&quot;&quot;</span>
+
+    <span class="n">db_path</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;db&quot;</span><span class="p">,</span> <span class="s2">&quot;db.sqlite3&quot;</span><span class="p">)</span>
+    <span class="n">row_factory</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="p">{</span><span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">row</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">)}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">__query_execute</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                        <span class="n">cur</span><span class="p">:</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Cursor</span><span class="p">,</span>
+                        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                        <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">error_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                        <span class="n">is_many</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Materially executes the requested query, while also catching and logging any exception that may be thrown</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cur: database cursor</span>
+<span class="sd">            query: query to execute. It may contain ? placeholders</span>
+<span class="sd">            args: tuple of values that will replace the placeholders</span>
+<span class="sd">            error_str: name of the method that caused the exception</span>
+<span class="sd">            is_many: whether to use the :func:`sqlite3.Cursor.executemany` function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query_func</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">executemany</span> <span class="k">if</span> <span class="n">is_many</span> <span class="k">else</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
+                <span class="n">query_func</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">query_func</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="k">except</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;DbManager.</span><span class="si">%s</span><span class="s2">(): </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error_str</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DbManager.get_db"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.get_db">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Cursor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Creates the connection to the database. It can be sqlite or postgres</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            sqlite database connection and cursor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="n">get_abs_path</span><span class="p">(</span><span class="o">*</span><span class="bp">cls</span><span class="o">.</span><span class="n">db_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">db_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">row_factory</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span></div>
+
+<div class="viewcode-block" id="DbManager.query_from_file"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.query_from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">query_from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Commits all the queries in the specified file. The queries must be separated by a ----- string</span>
+<span class="sd">        Should not be used to select something</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: path of the text file containing the queries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+        <span class="n">queries</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="o">*</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-----&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;query_from_file&quot;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DbManager.query_from_string"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.query_from_string">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">query_from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">queries</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Commits all the queries in the string</span>
+<span class="sd">        Should not be used to select something</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queries: tuple of queries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;query_from_string&quot;</span><span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DbManager.select_from"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.select_from">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">select_from</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                    <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                    <span class="n">select</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+                    <span class="n">where</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="n">where_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">group_by</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="n">order_by</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns the results of a query.</span>
+<span class="sd">        Executes &quot;SELECT select FROM table_name [WHERE where (with where_args)] [GROUP_BY group_by] [ORDER BY order_by]&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table_name: name of the table used in the FROM</span>
+<span class="sd">            select: columns considered for the query</span>
+<span class="sd">            where: where clause, with %s placeholders for the where_args</span>
+<span class="sd">            where_args: args used in the where clause</span>
+<span class="sd">            group_by: group by clause</span>
+<span class="sd">            order_by: order by clause</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            rows from the select</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="n">where</span> <span class="o">=</span> <span class="n">where</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">where</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">group_by</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;GROUP BY </span><span class="si">{</span><span class="n">group_by</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">group_by</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">order_by</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ORDER BY </span><span class="si">{</span><span class="n">order_by</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">order_by</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span>
+                            <span class="n">query</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">group_by</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">order_by</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">=</span><span class="n">where_args</span><span class="p">,</span>
+                            <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;select_from&quot;</span><span class="p">)</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">query_result</span></div>
+
+<div class="viewcode-block" id="DbManager.count_from"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.count_from">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">count_from</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">select</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">where</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns the number of rows found with the query.</span>
+<span class="sd">        Executes &quot;SELECT COUNT(select) FROM table_name [WHERE where (with where_args)]&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table_name: name of the table used in the FROM</span>
+<span class="sd">            select: columns considered for the query</span>
+<span class="sd">            where: where clause, with %s placeholders for the where_args</span>
+<span class="sd">            where_args: args used in the where clause</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            number of rows</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="n">where</span> <span class="o">=</span> <span class="n">where</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">where</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span>
+                            <span class="n">query</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;SELECT COUNT(</span><span class="si">{</span><span class="n">select</span><span class="si">}</span><span class="s2">) as number FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">=</span><span class="n">where_args</span><span class="p">,</span>
+                            <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;count_from&quot;</span><span class="p">)</span>
+
+        <span class="n">query_result</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">query_result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;number&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">query_result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="DbManager.insert_into"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.insert_into">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">insert_into</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">multiple_rows</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Inserts the specified values in the database.</span>
+<span class="sd">        Executes &quot;INSERT INTO table_name ([columns]) VALUES (placeholders)&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table_name: name of the table used in the INSERT INTO</span>
+<span class="sd">            values: values to be inserted. If multiple_rows is true, tuple of tuples of values to be inserted</span>
+<span class="sd">            columns: columns that will be inserted, as a tuple of strings</span>
+<span class="sd">            multiple_rows: whether or not multiple rows will be inserted at the same time</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">multiple_rows</span><span class="p">:</span>
+            <span class="n">placeholders</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;?&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">placeholders</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;?&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span>
+                            <span class="n">query</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;INSERT INTO </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2"> VALUES (</span><span class="si">{</span><span class="n">placeholders</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
+                            <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;insert_into&quot;</span><span class="p">,</span>
+                            <span class="n">is_many</span><span class="o">=</span><span class="n">multiple_rows</span><span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DbManager.update_from"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.update_from">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">update_from</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">set_clause</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">where</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the rows from the specified table, where the condition, when set, is satisfied.</span>
+<span class="sd">        Executes &quot;UPDATE table_name SET set_clause (with args) [WHERE where (with args)]&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table_name: name of the table used in the DELETE FROM</span>
+<span class="sd">            set_clause: set clause, with %s placeholders</span>
+<span class="sd">            where: where clause, with %s placeholders for the where args</span>
+<span class="sd">            args: args used both in the set clause and in the where clause, in this order</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="n">set_clause</span> <span class="o">=</span> <span class="n">set_clause</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="n">where</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">where</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;UPDATE </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> SET </span><span class="si">{</span><span class="n">set_clause</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;update_from&quot;</span><span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DbManager.delete_from"><a class="viewcode-back" href="../../../modules.data.html#modules.data.db_manager.DbManager.delete_from">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">delete_from</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">where</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">where_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deletes the rows from the specified table, where the condition, when set, is satisfied.</span>
+<span class="sd">        Executes &quot;DELETE FROM table_name [WHERE where (with where_args)]&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table_name: name of the table used in the DELETE FROM</span>
+<span class="sd">            where: where clause, with %s placeholders for the where args</span>
+<span class="sd">            where_args: args used in the where clause</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_db</span><span class="p">()</span>
+
+        <span class="n">where</span> <span class="o">=</span> <span class="n">where</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">where</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__query_execute</span><span class="p">(</span><span class="n">cur</span><span class="o">=</span><span class="n">cur</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;DELETE FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">where_args</span><span class="p">,</span> <span class="n">error_str</span><span class="o">=</span><span class="s2">&quot;delete_from&quot;</span><span class="p">)</span>
+
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Tend, drendog, alepiaz, Helias.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
